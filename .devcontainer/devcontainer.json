@@ -1,0 +1,19 @@
+{
+  "name": "Rust IO Uring Development",
+  "image": "mcr.microsoft.com/devcontainers/rust:latest",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {}
+  },
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y liburing-dev build-essential pkg-config",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "fill-labs.dependi",
+        "wmaurer.vscode-jumpy"
+      ]
+    }
+  },
+  "remoteUser": "vscode"
+}

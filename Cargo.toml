@@ -1,0 +1,30 @@
+[package]
+name = "ringdb"
+version = "0.1.0"
+edition = "2024"
+
+[profile.dev]
+debug = false
+
+[profile.release]
+debug = false
+lto = true
+
+[dependencies]
+futures = "0.3.31"
+monoio = "0.2"
+libc = { version = "0.2", default-features = false }
+bincode = "2.0.1"
+async-trait = "0.1.89"
+rustyline = "17.0.1"
+local-sync = "0.1.1"
+bytes = "1.10.1"
+core_affinity = "0.8.3"
+crossbeam = "0.8.4"
+
+[dev-dependencies]
+criterion = "0.7"
+
+[[bench]]
+name = "io_benchmark_monoio"
+harness = false
