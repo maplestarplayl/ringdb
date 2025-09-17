@@ -6,6 +6,7 @@ use crate::{
     },
 };
 use async_trait::async_trait;
+use futures::{stream::FuturesUnordered, StreamExt};
 use std::sync::Arc;
 
 pub struct CreateTableExecutor {
@@ -109,14 +110,16 @@ impl Executor for SequentialScanExecutor {
         let bpm_clone = self.bpm.clone();
 
         let prefetch_handle = monoio::spawn(async move {
-            let mut futures = Vec::new();
+            // let mut futures = Vec::new();
+            let mut tasks = FuturesUnordered::new();
             for page_id in 0..TOTAL_PAGES {
                 let fetch_fut = bpm_clone.fetch_page(page_id as _, self.disk_manager.clone());
-                futures.push(fetch_fut);
+                tasks.push(fetch_fut);
 
-                if futures.len() >= PREFETCH_PAGES {
-                    let page_guards = futures::future::join_all(futures.drain(..)).await;
-                    for guard_result in page_guards {
+                if tasks.len() >= PREFETCH_PAGES {
+                    // let page_guards = futures::future::join_all(futures.drain(..)).await;
+                    // for guard_result in page_guards {
+                    if let Some(guard_result) = tasks.next().await {
                         match guard_result {
                             Ok(guard) => {
                                 if tx.send(guard).await.is_err() {
@@ -133,16 +136,18 @@ impl Executor for SequentialScanExecutor {
             }
 
             // 处理剩余的 futures
-            if !futures.is_empty() {
-                 let page_guards = futures::future::join_all(futures.drain(..)).await;
-                 for guard_result in page_guards {
-                     match guard_result {
-                         Ok(guard) => {
-                             if tx.send(guard).await.is_err() { return; }
-                         },
-                         Err(_) => { return; }
-                     }
-                 }
+            while let Some(guard_result) = tasks.next().await {
+                match guard_result {
+                    Ok(guard) => {
+                        if tx.send(guard).await.is_err() {
+                            return;
+                        }
+                    }
+                    Err(_) => {
+                        eprintln!("Failed to fetch page");
+                        return;
+                    }
+                }
             }
         });
 
